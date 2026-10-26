@@ -1,0 +1,9 @@
+[package]
+name = "ks-acquisition"
+description = "Sensor data acquisition: HDD smartctl/simulated feeds for field reconstruction experiments"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+ks-core = { path = "../ks-core" }
