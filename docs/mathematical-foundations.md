@@ -25,25 +25,28 @@ Standard results implemented and tested here:
 | d_[a F_bc] = 0 (Bianchi) holds identically for F = dA | reduction::tests::bianchi_holds_for_plane_wave_all_points |
 | Sourcefree Maxwell has plane-wave solutions with w = k (lightlike) | reduction::tests::inhomogeneous_residual_zero_for_sourcefree_lightlike_wave |
 | The Maxwell residual DETECTS wrong dispersion: w != k gives O(w^2-k^2) residual | reduction::tests::inhomogeneous_residual_exposes_wrong_dispersion |
+| curl(A) = B for A = 1/2(B x r); reconstruction residual < 1e-12 | experiments_e2::tests::curl_reconstruction_recovers_b |
+| B extraction B_i = 1/2 eps_ijk F_jk matches vector calculus for the standard gauge | experiments_e2::tests::e_and_b_agrees_with_gauge_b |
+| E2 (phase 2): Maxwell + Bianchi residuals vanish on the reconstructed field | experiments_e2::tests::maxwell_residuals_vanish_on_reconstructed_field |
+| Gamma^mu_(5 nu) = -kappa/2 F^mu_nu exactly (cylinder ansatz) | geodesic::tests::christoffel_5n_matches_lorentz_formula |
+| Geodesic spatial accel = kappa*u5*F^i_j u^j (Lorentz force; charge = 5th momentum, weak-field limit) | geodesic::tests::geodesic_accel_is_lorentz_force |
+| p5 = u5 + kappa A_mu u^mu conserved along integrated geodesics to 1e-8 | geodesic::tests::p5_conserved_along_geodesic |
+| Real NVMe SMART JSON parses: temperature Celsius, health flags correct | ks-acquisition smart::tests::parses_real_apple_nvme_fixture |
 
-## Numerical method
+## Numerical caveats (validated, not hidden)
 
-Fields live on a uniform lattice indexed f[t][x][y][z], spacings dx =
-(dt, dx, dy, dz). First derivatives: central differences, one-sided at the
-two boundary faces of each axis.
-
-Known limitation (documented, not hidden): the one-sided boundary stencils
-have O(dx) error. Any residual involving SECOND derivatives (inhomogeneous
-Maxwell, wave operator) is therefore evaluated only on the 2-point interior
-of the lattice; the boundary band is excluded from the residual
-comparison. Bianchi residuals involve only first derivatives of F and are
-measured on the full lattice.
-
-The plane-wave tests exploit exactness: sin/cos sampled on the lattice have
-exact central-difference derivatives (the stencil integrates the mode
-exactly), so residuals collapse to floating-point noise (~1e-15) rather
-than truncation error — while the w != k case still produces a large,
-analytically predictable residual (5.0 = |w^2 - k^2| max |sin|).
+- One-sided boundary stencils carry O(dx) error: residuals involving second
+  derivatives (inhomogeneous Maxwell, wave operator) evaluate on the 2-point
+  interior only. Bianchi residuals (first derivatives only) run on the full
+  lattice.
+- The plane-wave tests are exact because sin/cos sampled at uniform spacing
+  have exact central-difference derivatives.
+- Geodesic force-law residual = the O(kappa^2 |A|^2) gradient terms of the
+  ansatz (real physics, shrinks as kappa|A| -> 0; the test tolerance 5% and
+  the state are documented). The metric degenerates when kappa^2 |A|^2 ~ 1:
+  stay in the weak-field region (`Metric5::weak_field_ok`).
+- smartctl NVMe JSON reports temperature directly in Celsius (verified
+  against this machine's Apple NVMe; the human-readable output agrees).
 
 ## What is NOT claimed
 

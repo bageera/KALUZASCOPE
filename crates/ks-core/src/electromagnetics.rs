@@ -32,17 +32,19 @@ pub fn field_tensor(a: &PotentialLattice, dx: [f64; 4]) -> [[Lattice; 4]; 4] {
     f
 }
 
-/// E_i = F_{0i} lattices cloned out, B from F_{12} = -B_3, F_{13} = +B_2,
-/// F_{23} = -B_1. Returns ([E; 3], [B; 3]).
+/// E_i = F_{0i} lattices cloned out, B from the vector-calculus-consistent
+/// convention B_i = ½ ε_ijk F_jk (so B_1 = F_23, B_2 = F_31, B_3 = F_12).
+/// With the standard symmetric gauge A = ½(B × r) this recovers the input B
+/// directly (validated in experiments_e2). Returns ([E; 3], [B; 3]).
 pub fn e_and_b(f: &[[Lattice; 4]; 4]) -> ([Lattice; 3], [Lattice; 3]) {
     let e: [Lattice; 3] = std::array::from_fn(|i| f[0][i + 1].clone());
     let shape = shape_of(&f[1][2]);
     let (nt, nx, ny, nz) = (shape[0], shape[1], shape[2], shape[3]);
     let mut b: [Lattice; 3] = std::array::from_fn(|_| zeros(shape, 0.0));
-    for t in 0..nt { for x in 0..nx { for y in 0..ny { for z in 0..nz {
-        b[0][t][x][y][z] = -f[2][3][t][x][y][z];
-        b[1][t][x][y][z] = f[1][3][t][x][y][z];
-        b[2][t][x][y][z] = -f[1][2][t][x][y][z];
+    for t in 0..nt { for i in 0..nx { for j in 0..ny { for k in 0..nz {
+        b[0][t][i][j][k] = f[2][3][t][i][j][k];
+        b[1][t][i][j][k] = -f[1][3][t][i][j][k];
+        b[2][t][i][j][k] = f[1][2][t][i][j][k];
     }}}}
     (e, b)
 }

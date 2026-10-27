@@ -22,7 +22,13 @@ reproducible test** (`cargo test` runs the whole proof suite).
     measurable O((w^2-k^2) sin) failure — the residuals detect physics errors.
 - `crates/ks-acquisition` — measurement provenance types. HDD SMART/FARM
   telemetry is planned read-only, phase 3 of the roadmap; nothing here
-  pretends a disk-health counter is a field sample.
+  pretends a disk-health counter is a field sample
+- `crates/ks-core` geodesics (phase 5 material): numerical 5D Christoffels,
+  RK4 integrator; proven Γ^μ₅ν = −κ/2 F^μ_ν, geodesic accel = κu₅F^iⱼu^ⱼ
+  (Lorentz force with the fifth momentum as charge), p₅ conserved.
+- `experiments` — phase-2 reconstruction experiment lives in
+  `ks-core::experiments_e2` (curl gauge → field tensor → Maxwell residuals).
+
 
 ## Honest scope
 
@@ -46,8 +52,14 @@ was built with rustc 1.99.0 at ~/.local/opt/rust/bin.
 
 ## Roadmap
 
-1. Verified 5D tensor/metric library — DONE (this release)
-2. EM simulation & reconstruction experiments — next
-3. HDD SMART/FARM telemetry adapter (read-only) — planned
-4. Real magnetic-field acquisition (calibrated external sensor) — planned
-5. Conventional-EM vs 5D-prediction comparison — planned
+1. Verified 5D tensor/metric library — DONE (v0.1.0)
+2. EM simulation & reconstruction experiments — DONE (E2: curl reconstruction,
+   Maxwell + Bianchi residuals vanish on reconstructed fields)
+3. HDD/SSD SMART telemetry adapter (read-only) — DONE (NVMe JSON parser,
+   provenance-tagged; fixture = real Apple NVMe; live-read verified)
+4. Real magnetic-field acquisition (calibrated external sensor) — blocked on
+   hardware: no calibrated sensor on the bench. The Measurement/Provenance
+   types are the contract to plug into.
+5. Conventional-EM vs 5D-prediction comparison — partially done (geodesic
+   force law + p5 charge conservation proven; compactification-mode
+   predictions are the remaining item)

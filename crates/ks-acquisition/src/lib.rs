@@ -1,32 +1,36 @@
-//! ks-acquisition: sensor reads for the experiments. v0.1.0 ships the
-//! simulated feed only; the HDD smartctl adapter lands when hardware is in
-//! the loop (phase 3 of the roadmap). Measured vs. reconstructed data are
-//! NEVER mixed: `Measurement` carries its own provenance.
+//! ks-acquisition: sensor reads for the experiments. The HDD/SSD path
+//! (smart.rs) parses read-only smartctl output; device-health counters are
+//! never treated as field samples — provenance types make conflation
+//! unrepresentable.
+
+pub mod smart;
+
+#[cfg(test)]
+mod live;
 
 use ks_core::lattice::Lattice;
 
-/// What a measurement actually is. The distinction matters: an HDD SMART
-/// attribute is a device-health counter, not a field sample. The enum makes
-/// conflation unrepresentable.
+/// What a measurement actually is.
 #[derive(Debug, Clone)]
 pub enum Provenance {
     /// Known analytic solution, evaluated on the lattice.
     Simulated { model: String },
     /// Read from real hardware (HDD telemetry, sensor probe, ...).
     Measured { device: String },
+    /// Reconstructed from other measured quantities (e.g. potentials from
+    /// B-field samples). Carries the source so re-derivation is possible.
+    Reconstructed { source: String },
 }
 
 #[derive(Debug, Clone)]
 pub struct Measurement {
     pub provenance: Provenance,
-    /// Sampled field snapshot [t][x][y][z] (the only channel the pipeline
-    /// consumes; the acquisition layer is responsible for its meaning).
+    /// Sampled field snapshot [t][x][y][z].
     pub field: Lattice,
     pub dx: [f64; 4],
 }
 
 impl Measurement {
-    /// Simulated measurement from an analytic model.
     pub fn simulated(model: &str, field: Lattice, dx: [f64; 4]) -> Self {
         Measurement {
             provenance: Provenance::Simulated { model: model.to_string() },
@@ -34,27 +38,25 @@ impl Measurement {
             dx,
         }
     }
-}
 
-/// The planned phase-3 adapter. Stub API so the experiment harness can be
-/// written against it before hardware exists; the contract: read-only,
-/// no firmware writes, provenance always Measured.
-pub mod hdd {
-    /// One smartctl reading. Only the fields the research can legitimately
-    /// use; drives do NOT expose raw head waveforms through any standard
-    /// interface (documented in docs/experimental-methodology.md).
-    #[derive(Debug, Clone)]
-    pub struct SmartSample {
-        pub device: String,
-        pub temperature_c: f64,
-        pub reallocated_sectors: u64,
-        pub read_error_rate: f64,
+    pub fn measured(device: &str, field: Lattice, dx: [f64; 4]) -> Self {
+        Measurement {
+            provenance: Provenance::Measured { device: device.to_string() },
+            field,
+            dx,
+        }
     }
 
-    /// Parse `smartctl -a` output. Not wired to a real device yet: the
-    /// parser lands with the first supported drive on the bench.
-    pub fn parse_smartctl(_output: &str) -> Option<SmartSample> {
-        None // ponytail: stub until phase-3 hardware; parser when real output exists
+    pub fn reconstructed(source: &str, field: Lattice, dx: [f64; 4]) -> Self {
+        Measurement {
+            provenance: Provenance::Reconstructed { source: source.to_string() },
+            field,
+            dx,
+        }
+    }
+
+    pub fn is_measured(&self) -> bool {
+        matches!(self.provenance, Provenance::Measured { .. })
     }
 }
 
@@ -64,11 +66,12 @@ mod tests {
     use ks_core::lattice::zeros;
 
     #[test]
-    fn simulated_measurement_carries_provenance() {
+    fn provenance_is_tracked() {
         let m = Measurement::simulated("plane-wave", zeros([2, 2, 2, 2], 0.0), [1.0; 4]);
-        match m.provenance {
-            Provenance::Simulated { model } => assert_eq!(model, "plane-wave"),
-            Provenance::Measured { .. } => panic!("wrong provenance"),
-        }
+        assert!(!m.is_measured());
+        let m2 = Measurement::measured("/dev/disk0", zeros([2, 2, 2, 2], 0.0), [1.0; 4]);
+        assert!(m2.is_measured());
+        let m3 = Measurement::reconstructed("curl", zeros([2, 2, 2, 2], 0.0), [1.0; 4]);
+        assert!(!m3.is_measured());
     }
 }

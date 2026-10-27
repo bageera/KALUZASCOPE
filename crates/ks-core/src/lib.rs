@@ -1,6 +1,9 @@
 //! Kaluza–Klein 5D metric machinery. See docs/mathematical-foundations.md.
 
+pub mod analysis;
 pub mod electromagnetics;
+pub mod experiments_e2;
+pub mod geodesic;
 pub mod lattice;
 pub mod metric;
 pub mod reduction;
